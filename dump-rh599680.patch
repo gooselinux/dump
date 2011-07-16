@@ -1,0 +1,35 @@
+--- a/dump/traverse.c
++++ b/dump/traverse.c
+@@ -833,6 +833,8 @@ dump_xattr(dump_ino_t ino, struct dinode *dp) {
+ 			spcl.c_flags |= DR_EXTATTRIBUTES;
+ 			spcl.c_extattributes = EXT_XATTR;
+ 			spcl.c_count = howmany(EXT2_INODE_SIZE(fs->super), TP_BSIZE);
++			for (i = 0; i < spcl.c_count; i++)
++				spcl.c_addr[i] = 1;
+ 			writeheader(ino);
+ 			for (i = 0, cp = xattr; i < spcl.c_count; i++, cp += TP_BSIZE)
+ 				writerec(cp, 0);
+--- a/restore/tape.c
++++ b/restore/tape.c
+@@ -1238,12 +1238,20 @@ readxattr(char *buffer)
+ 		skipfile();
+ 		return (FAIL);
+ 	}
+-	
++
+ 	memset(xattrbuf, 0, XATTR_MAXSIZE);
+ 	xattrlen = 0;
+ 
++	/*
++	 * ugly hack: cope with invalid spcl.c_addr[] records written by
++	 * old versions of dump.
++	 */
++	readmapflag = 1;
++
+ 	getfile(xtrxattr, xtrnull);
+ 
++	readmapflag = 0;
++
+ 	memcpy(buffer, xattrbuf, XATTR_MAXSIZE);
+ 
+ 	return (GOOD);

@@ -1,0 +1,48 @@
+diff -up dump-0.4b42/restore/tape.c.rh507948 dump-0.4b42/restore/tape.c
+--- dump-0.4b42/restore/tape.c.rh507948	2009-07-23 14:28:17.998903816 +0200
++++ dump-0.4b42/restore/tape.c	2009-07-23 14:29:27.058903991 +0200
+@@ -474,7 +474,6 @@ getvol(long nextvol)
+ 	if (nextvol == 1) {
+ 		tapesread = 0;
+ 		gettingfile = 0;
+-		tpblksread = 0;
+ 		blksread = 0;
+ 	}
+ 	if (pipein) {
+@@ -3264,11 +3263,14 @@ ReReadInodeFromTape(dump_ino_t theino)
+ 		cntloop++;
+ 		gethead(&spcl);
+ 	} while (!(spcl.c_inumber == theino && spcl.c_type == TS_INODE && spcl.c_date == dumpdate));
++
++	tpblksread = spcl.c_tapea + spcl.c_volume;
+ #ifdef DEBUG_QFA
+ 	fprintf(stderr, "DEBUG: %ld reads\n", cntloop);
+ 	fprintf(stderr, "DEBUG: bufsize %ld\n", bufsize);
+ 	fprintf(stderr, "DEBUG: ntrec %ld\n", ntrec);
+-	fprintf(stderr, "DEBUG: %ld reads\n", cntloop);
++	fprintf(stderr, "DEBUG: tapea %d\n", spcl.c_tapea);
++	fprintf(stderr, "DEBUG: tpblksread %ld\n", tpblksread);
+ #endif
+ 	findinode(&spcl);
+ 	noresyncmesg = 0;
+--- dump-0.4b39/restore/restore.c	2004-12-15 12:00:01.000000000 +0100
++++ dump-0.4b39/restore/restore.c.rh507948	2010-02-02 16:50:03.817507952 +0100
+@@ -880,14 +880,15 @@ createfiles(void)
+ 	Vprintf(stdout, "Extract requested files\n");
+ 	curfile.action = SKIP;
+ #ifdef USE_QFA
+-	if (tapeposflag)
+-		curfile.ino = 0;
+-	else
++	if (!tapeposflag) {
+ #endif
+ 		if (volinfo[1] == ROOTINO)
+ 			curfile.ino = 0;
+ 		else
+ 			getvol((long)1);
++#ifdef USE_QFA
++	}
++#endif
+ 	skipmaps();
+ 	skipdirs();
+ 	first = lowerbnd(ROOTINO);
